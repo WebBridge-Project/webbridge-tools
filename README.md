@@ -109,6 +109,16 @@ build\Debug\your_target.exe
 build\Release\your_target.exe
 ```
 
+### Testing the package locally
+
+Clone this repository, then from its root:
+
+```bash
+pip install -e ".[test]"
+pytest tests/
+```
+
+`tests/` is a pytest suite that proves the code generator's `parser.py` (C++ header parsing: properties, events, methods, constructors, constants, enums, namespaces) and `tstypes.py` (C++ → TypeScript type mapping) are correct, across a range of C++ syntax shapes. It only requires Python — no CMake, no compiler, no webview.
 
 ## Concepts
 
