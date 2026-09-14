@@ -39,7 +39,7 @@ The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromiu
 
 No Conan or vcpkg needed. webbridge's own two C++ dependencies (`nlohmann_json`, `webview`) are fetched and built automatically by CMake via `FetchContent` when you call `webbridge_add_library()` (see below) — just like the upstream repo, pulling webbridge in only fetches *its own* dependencies, not any consuming project's extra ones.
 
-### Prerequisites (in your own project)
+### Prerequisites
 
 - **Visual Studio 2022** with C++ Desktop Development (MSVC compiler)
 - **CMake 3.26+**
@@ -47,7 +47,7 @@ No Conan or vcpkg needed. webbridge's own two C++ dependencies (`nlohmann_json`,
 - **Node.js** (only if you're building a JS/TS frontend that consumes the generated `.ts` bindings)
 - **Microsoft Edge WebView2 Runtime** (usually preinstalled on Windows 10/11)
 
-### 1. Install `webbridge-tools` (in your own project's environment)
+### 1. Install `webbridge-tools`
 
 ```bash
 pip install webbridge-tools
@@ -81,7 +81,7 @@ webbridge_generate(
 
 Replace `your_target` with the name of your own CMake target.
 
-### 3. Write and register your class (in your own project)
+### 3. Write and register your class
 
 1. Write a class that inherits from `webbridge::object` — see [Minimal Example](#minimal-example) below for what this looks like.
 
