@@ -1,11 +1,22 @@
 # webbridge CMake integration - pip/conda package edition.
 #
-# This assumes the `webbridge-tools` Python package (webbridge-generate /
-# webbridge-discoverer, importable as `webbridge_tools`) is already installed
-# into whichever Python interpreter CMake is told to use - e.g. via
-#   pip install webbridge-tools
-#   conda install -c <channel> webbridge-tools   # once published there
-# No source tree or vendored tools/ directory is required at configure time.
+# Everything here is sourced from the installed `webbridge-tools` Python
+# package (importable as `webbridge_tools`) - the C++ library source under
+# webbridge/, and the code generator (with its templates) under tools/.
+# No checkout of the webbridge source repo is required at configure time.
+#
+# Typical consumer usage:
+#
+#   find_package(Python REQUIRED COMPONENTS Interpreter)
+#   execute_process(
+#       COMMAND ${Python_EXECUTABLE} -m webbridge_tools --cmake-dir
+#       OUTPUT_VARIABLE WEBBRIDGE_TOOLS_CMAKE_DIR
+#       OUTPUT_STRIP_TRAILING_WHITESPACE)
+#   list(APPEND CMAKE_MODULE_PATH "${WEBBRIDGE_TOOLS_CMAKE_DIR}")
+#   include(webbridge)
+#
+#   webbridge_add_library()             # creates the webbridge::webbridge target
+#   webbridge_generate(TARGET your_target AUTO)
 
 option(WEBBRIDGE_TOOLS_PYTHON_EXECUTABLE
 	"Path to the Python interpreter that has webbridge-tools installed (defaults to the interpreter found by find_package(Python))"
@@ -13,13 +24,14 @@ option(WEBBRIDGE_TOOLS_PYTHON_EXECUTABLE
 
 # Resets each time this file is include()'d (i.e. once per configure), so
 # _webbridge_ensure_tools() re-checks availability on every configure, but
-# only does that check once even if webbridge_generate() is called multiple
-# times within the same configure.
+# only does that check once even if webbridge_generate()/webbridge_add_library()
+# are called multiple times within the same configure.
 unset(_WEBBRIDGE_TOOLS_CHECKED CACHE)
 
 # Verifies that WEBBRIDGE_PYTHON_EXECUTABLE points at an interpreter with the
-# webbridge_tools package installed, and resolves WEBBRIDGE_TEMPLATES_DIR to
-# that package's bundled templates (used for build-dependency tracking only).
+# webbridge_tools package installed, and resolves the package's bundled
+# webbridge/ (C++ source) and tools/templates/ (code generator templates)
+# directories.
 function(_webbridge_ensure_tools)
 	if(_WEBBRIDGE_TOOLS_CHECKED)
 		return()
@@ -34,8 +46,12 @@ function(_webbridge_ensure_tools)
 	endif()
 	set(WEBBRIDGE_PYTHON_EXECUTABLE "${python_exe}" CACHE INTERNAL "")
 
+	# .as_posix() (forward slashes) even on Windows: CMake re-embeds
+	# CMAKE_MODULE_PATH/list entries into generated scratch CMakeLists.txt
+	# files (e.g. try_compile for compiler-ABI detection), where a backslash
+	# is parsed as an escape character. Forward slashes are always safe there.
 	execute_process(
-		COMMAND "${python_exe}" -c "import webbridge_tools, pathlib; print(pathlib.Path(webbridge_tools.__file__).parent)"
+		COMMAND "${python_exe}" -c "import webbridge_tools, pathlib; print(pathlib.Path(webbridge_tools.__file__).parent.as_posix())"
 		OUTPUT_VARIABLE package_dir
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		RESULT_VARIABLE import_result
@@ -51,7 +67,89 @@ function(_webbridge_ensure_tools)
 			"installed.\n${import_error}")
 	endif()
 
-	set(WEBBRIDGE_TEMPLATES_DIR "${package_dir}/templates" CACHE INTERNAL "")
+	set(WEBBRIDGE_TEMPLATES_DIR "${package_dir}/tools/templates" CACHE INTERNAL "")
+	# The bundled webbridge/ C++ source tree lives directly inside package_dir.
+	set(WEBBRIDGE_INCLUDE_DIR "${package_dir}" CACHE INTERNAL "")
+endfunction()
+
+# Creates the webbridge::webbridge STATIC library target from the C++ source
+# bundled inside the webbridge-tools package, fetching webbridge's own two
+# C++ dependencies (nlohmann_json, webview) via FetchContent.
+function(webbridge_add_library)
+	set(options)
+	set(oneValueArgs TARGET)
+	set(multiValueArgs)
+	cmake_parse_arguments(PARSE_ARGV 0 arg
+		"${options}" "${oneValueArgs}" "${multiValueArgs}"
+	)
+
+	if(NOT arg_TARGET)
+		set(arg_TARGET webbridge)
+	endif()
+
+	if(TARGET ${arg_TARGET})
+		message(FATAL_ERROR "webbridge_add_library: target '${arg_TARGET}' already exists")
+	endif()
+
+	_webbridge_ensure_tools()
+
+	include(FetchContent)
+
+	set(JSON_BuildTests OFF CACHE INTERNAL "")
+	FetchContent_Declare(
+		nlohmann_json
+		GIT_REPOSITORY https://github.com/nlohmann/json
+		GIT_TAG v3.11.3
+		GIT_SHALLOW TRUE)
+	FetchContent_MakeAvailable(nlohmann_json)
+
+	FetchContent_Declare(
+		webview
+		GIT_REPOSITORY https://github.com/webview/webview
+		GIT_TAG 0.12.0)
+	FetchContent_MakeAvailable(webview)
+
+	set(src "${WEBBRIDGE_INCLUDE_DIR}/webbridge")
+	add_library(${arg_TARGET} STATIC
+		${src}/object.h
+		${src}/error.h
+		${src}/impl/binding_helpers.h
+		${src}/impl/concepts.h
+		${src}/impl/dispatcher.h
+		${src}/impl/error_handler.h
+		${src}/impl/error_handler.cpp
+		${src}/impl/event_impl.h
+		${src}/impl/object_registry.h
+		${src}/impl/property_impl.h
+		${src}/impl/thread_pool.h
+		${src}/impl/thread_pool.cpp
+		${src}/impl/type_registration.h
+		${src}/impl/type_registration.cpp
+	)
+	if(NOT arg_TARGET STREQUAL "webbridge")
+		add_library(webbridge::${arg_TARGET} ALIAS ${arg_TARGET})
+	else()
+		add_library(webbridge::webbridge ALIAS webbridge)
+	endif()
+
+	target_include_directories(${arg_TARGET} PUBLIC
+		$<BUILD_INTERFACE:${WEBBRIDGE_INCLUDE_DIR}>
+	)
+
+	target_compile_features(${arg_TARGET} PUBLIC cxx_std_20)
+
+	# WebView2 (via the webview library) requires a modern Windows SDK target;
+	# PUBLIC because consumers including webbridge headers pull in webview.h too.
+	target_compile_definitions(${arg_TARGET} PUBLIC _WIN32_WINNT=0x0A00)
+
+	target_link_libraries(${arg_TARGET} PUBLIC
+		nlohmann_json::nlohmann_json
+		webview::core
+	)
+
+	if(MSVC)
+		target_compile_options(${arg_TARGET} PRIVATE /W3 /bigobj)
+	endif()
 endfunction()
 
 # Helper function to parse discoverer output
@@ -140,7 +238,7 @@ function(webbridge_generate)
 
 		if(header_files)
 			execute_process(
-				COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.discoverer
+				COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.tools.discoverer
 					${header_files}
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 				OUTPUT_VARIABLE discoverer_output
@@ -149,7 +247,7 @@ function(webbridge_generate)
 			)
 
 			if(result AND NOT result EQUAL 0)
-				message(FATAL_ERROR "webbridge_tools.discoverer failed with exit code ${result}")
+				message(FATAL_ERROR "webbridge_tools.tools.discoverer failed with exit code ${result}")
 			endif()
 
 			# Parse output using helper function
@@ -164,7 +262,7 @@ function(webbridge_generate)
 		endforeach()
 
 		execute_process(
-			COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.discoverer
+			COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.tools.discoverer
 				${abs_files}
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 			OUTPUT_VARIABLE discoverer_output
@@ -173,7 +271,7 @@ function(webbridge_generate)
 		)
 
 		if(result AND NOT result EQUAL 0)
-			message(FATAL_ERROR "webbridge_tools.discoverer failed with exit code ${result}")
+			message(FATAL_ERROR "webbridge_tools.tools.discoverer failed with exit code ${result}")
 		endif()
 
 		# Parse output using helper function
@@ -232,7 +330,7 @@ function(webbridge_generate)
 	list(LENGTH all_files file_count)
 	add_custom_command(
 		OUTPUT ${all_output_files}
-		COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.generate
+		COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.tools.generate
 			--batch
 			${batch_args}
 			${python_out_arg}

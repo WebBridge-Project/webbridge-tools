@@ -8,7 +8,7 @@ Usage:
 """
 
 import pytest
-from webbridge_tools.tstypes import cpp_to_ts_type
+from webbridge_tools.tools.tstypes import cpp_to_ts_type
 
 @pytest.mark.parametrize("cpp,ts", [
     ("int", "number"),

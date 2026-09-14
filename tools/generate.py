@@ -13,7 +13,7 @@ Verwendung:
     webbridge-generate --batch file1.h|Class1 file2.h|Class2 --cpp_out=<dir> --ts_impl_out=<dir>
 
     # Äquivalent ohne Console-Script (z.B. aus CMake heraus):
-    python -m webbridge_tools.generate <input.h> --class-name <ClassName> --cpp_out=<dir>
+    python -m webbridge_tools.tools.generate <input.h> --class-name <ClassName> --cpp_out=<dir>
 
 Beispiel:
     webbridge-generate ../src/MyObject.h --class-name MyObject --cpp_out=../build/src

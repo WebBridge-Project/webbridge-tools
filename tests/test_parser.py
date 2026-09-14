@@ -10,7 +10,7 @@ Usage:
 import pytest
 import tempfile
 from pathlib import Path
-from webbridge_tools.parser import parse_header
+from webbridge_tools.tools.parser import parse_header
 
 
 # =============================================================================
