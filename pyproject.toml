@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "webbridge-tools"
+version = "0.1.0"
+description = "Code generation tools for the webbridge framework (C++ registration + TypeScript bindings)"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "F&S Bondtec Semiconductor GmbH" }]
+requires-python = ">=3.9"
+dependencies = [
+    "jinja2>=3.1,<4",
+    "tree-sitter>=0.25,<0.26",
+    "tree-sitter-cpp>=0.23,<0.24",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+webbridge-generate = "webbridge_tools.generate:main"
+webbridge-discoverer = "webbridge_tools.discoverer:main"
+webbridge-parser = "webbridge_tools.parser:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+webbridge_tools = ["templates/*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
