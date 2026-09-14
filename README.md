@@ -39,7 +39,7 @@ The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromiu
 
 No Conan or vcpkg needed. webbridge's own two C++ dependencies (`nlohmann_json`, `webview`) are fetched and built automatically by CMake via `FetchContent` when you call `webbridge_add_library()` (see below) — just like the upstream repo, pulling webbridge in only fetches *its own* dependencies, not any consuming project's extra ones.
 
-### Prerequisites
+### Prerequisites (in your own project)
 
 - **Visual Studio 2022** with C++ Desktop Development (MSVC compiler)
 - **CMake 3.26+**
@@ -47,8 +47,7 @@ No Conan or vcpkg needed. webbridge's own two C++ dependencies (`nlohmann_json`,
 - **Node.js** (only if you're building a JS/TS frontend that consumes the generated `.ts` bindings)
 - **Microsoft Edge WebView2 Runtime** (usually preinstalled on Windows 10/11)
 
-
-### Using it in your own C++ project
+### 1. Install `webbridge-tools` (in your own project's environment)
 
 ```bash
 pip install webbridge-tools
@@ -56,6 +55,8 @@ pip install webbridge-tools
 conda activate myenv
 pip install webbridge-tools
 ```
+
+### 2. Wire it into your own `CMakeLists.txt`
 
 Add this to your project's `CMakeLists.txt` to locate the installed package and pull in its CMake functions:
 
@@ -80,7 +81,8 @@ webbridge_generate(
 
 Replace `your_target` with the name of your own CMake target.
 
-In your project:
+### 3. Write and register your class (in your own project)
+
 1. Write a class that inherits from `webbridge::object` — see [Minimal Example](#minimal-example) below for what this looks like.
 
 2. Register it where you create your webview window:
@@ -88,7 +90,7 @@ In your project:
 webbridge::register_type<YourClass>(&your_webview);
 ```
 
-First build with:
+### 4. Build and run your own project
 
 ```bash
 cmake -B build -S .
@@ -107,7 +109,6 @@ build\Debug\your_target.exe
 build\Release\your_target.exe
 ```
 
-This was verified end-to-end: `webbridge_add_library()` FetchContents `nlohmann_json`/`webview`, compiles `webbridge.lib` from the packaged source, `webbridge_generate()` generates and compiles a class's registration code, and the result links — all with no `webbridge` git checkout anywhere on disk.
 
 ## Concepts
 
@@ -267,14 +268,6 @@ The current implementation has the following limitations:
 - Enums are automatically detected and exported to TypeScript, but complex enum use cases may require additional handling.
 - Currently Windows-only (relies on Microsoft WebView2).
 
-## Development
-
-To work on the code generator itself:
-
-```bash
-pip install -e ".[test]"
-pytest
-```
 
 ## License
 
