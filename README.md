@@ -32,7 +32,7 @@ The solution is based on **webview** (C++ wrapper for Microsoft WebView2/Chromiu
 - `src/webbridge_tools/webbridge/` — the library itself (bundled C++ source; this is what your project links against and `#include`s)
 - `cmake/webbridge.cmake` — the `webbridge_add_library()` and `webbridge_generate()` CMake functions (installs as the `webbridge_tools.cmake` subpackage)
 - `tools/{generate.py, discoverer.py, parser.py, tstypes.py, templates/}` — the Python/tree-sitter code generator (installs as the `webbridge_tools.tools` subpackage)
-- `tests/` — pytest suite for the code generator
+- `tests/` — pytest suite for the code generator, plus `tests/cpp_smoke/`, a small CMake fixture project (analogous to the Conan package's `test_package`) that exercises the full pipeline end to end
 
 
 ## Getting started
@@ -109,16 +109,25 @@ build\Debug\your_target.exe
 build\Release\your_target.exe
 ```
 
-### Testing the package locally
+## Testing your changes locally
 
-Clone this repository, then from its root:
+To check whether a change you made to this repository broke anything, clone it and from its root:
 
 ```bash
 pip install -e ".[test]"
 pytest tests/
 ```
 
-`tests/` is a pytest suite that proves the code generator's `parser.py` (C++ header parsing: properties, events, methods, constructors, constants, enums, namespaces) and `tstypes.py` (C++ → TypeScript type mapping) are correct, across a range of C++ syntax shapes. It only requires Python — no CMake, no compiler, no webview.
+If this succeeds, the code generator's `parser.py` (C++ header parsing: properties, events, methods, constructors, constants, enums, namespaces) and `tstypes.py` (C++ → TypeScript type mapping) are still correct, across a range of C++ syntax shapes. It only requires Python — no CMake, no compiler, no webview, and it runs in well under a second.
+
+`pytest` alone doesn't call `generate.py`'s templates, and nothing in it compiles or links against a real C++ toolchain. `tests/cpp_smoke/` closes that gap — a small fixture project that exercises the full pipeline: parsing, generation, and an actual compile against the packaged `webbridge` library. With the venv from above still active (so `webbridge_tools` resolves to your local checkout):
+
+```bash
+cmake -S tests/cpp_smoke -B tests/cpp_smoke/build -DPython_EXECUTABLE="$(python -c 'import sys; print(sys.executable)')"
+cmake --build tests/cpp_smoke/build --config Debug --target webbridge_smoke_test
+```
+
+which should print `webbridge.vcxproj -> ...\webbridge.lib` and `webbridge_smoke_test.vcxproj -> ...\webbridge_smoke_test.lib` near the end — meaning the parser understood `tests/cpp_smoke/src/MyObject.h`, `generate.py` produced valid C++ from it, and it compiled and linked against the packaged `webbridge` library.
 
 ## Concepts
 
