@@ -28,7 +28,6 @@ Until C++26 reflection is available, this tool serves as a stopgap.
 """
 
 import sys
-import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from .tstypes import cpp_to_ts_type
@@ -126,19 +125,6 @@ def generate_typescript_impl(cls: ClassInfo, header_path: str) -> str:
     )
 
 
-def generate_typescript_types(cls: ClassInfo, header_path: str) -> str:
-    """Generates the TypeScript .types.d.ts type definitions."""
-    try:
-        template = _JINJA_ENV.get_template("types.d.ts.j2")
-    except Exception as e:
-        raise FileNotFoundError(f"Could not load template 'types.d.ts.j2': {e}") from e
-
-    return template.render(
-        cls=cls,
-        header_path=Path(header_path).name,
-    )
-
-
 # =============================================================================
 # Main
 # =============================================================================
@@ -148,12 +134,12 @@ def main():
     Main function for registration generation.
 
     Supports two modes:
-    1. Single file: python generate.py <file.h> --class-name <Name>
-    2. Batch: python generate.py --batch file1.h:Class1 file2.h:Class2 ...
+    1. Single file: webbridge-generate <file.h> --class-name <Name>
+    2. Batch: webbridge-generate --batch file1.h|Class1 file2.h|Class2 ...
 
     Args:
         input_path: Input header file (.h) [single mode]
-        batch: List of "file.h:ClassName" pairs [batch mode]
+        batch: List of "file.h|ClassName" pairs [batch mode]
         class_name: Name of the class to process [single mode]
         cpp_out: Output folder for C++ registration (optional)
         ts_impl_out: Output folder for TypeScript implementation (optional)
@@ -163,6 +149,7 @@ def main():
         0: Success
         1: Error during execution
     """
+    import argparse
 
     parser = argparse.ArgumentParser(
         description="Generates webbridge registration and/or TypeScript types",
@@ -216,10 +203,6 @@ def main():
 
         try:
             cls = parse_header(input_path, class_name)
-        except ImportError as e:
-            print(f"  [ERROR] webbridge_parser not available: {e}", file=sys.stderr)
-            error_count += 1
-            continue
         except Exception as e:
             print(f"  [ERROR] Error while parsing: {e}", file=sys.stderr)
             if args.verbose:

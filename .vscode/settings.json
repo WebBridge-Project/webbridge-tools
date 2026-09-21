@@ -1,3 +1,3 @@
 {
-    "cmake.sourceDirectory": "C:/Git/webbridge-tools/webbridge-hackathon"
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe"
 }

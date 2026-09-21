@@ -77,7 +77,6 @@ SEQ_CONTAINER_MAP = {
     'std::array': 'Array',
 }
 
-
 ASSOC_CONTAINER_MAP = {
     'std::map': 'Record',
     'std::unordered_map': 'Record',
@@ -94,7 +93,6 @@ def cpp_to_ts_type(cpp_type: str) -> str:
 
     for container_name in SEQ_CONTAINER_MAP:
         if cpp_type.startswith(container_name + '<'):
-
             start = cpp_type.index('<') + 1
             end = cpp_type.rindex('>')
             inner = cpp_type[start:end].strip()
@@ -107,7 +105,6 @@ def cpp_to_ts_type(cpp_type: str) -> str:
 
     for container_name in ASSOC_CONTAINER_MAP:
         if cpp_type.startswith(container_name + '<'):
-
             start = cpp_type.index('<') + 1
             end = cpp_type.rindex('>')
             types = cpp_type[start:end].strip()

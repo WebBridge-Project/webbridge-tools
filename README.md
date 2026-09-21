@@ -34,7 +34,7 @@ Replace `your_target` with your own CMake target. `webbridge_generate()` must co
 
 ## Testing
 
-If you cloned the repository, you can test its functionality locally :
+If you cloned the repository, you can test its functionality locally:
 
 ```bash
 pip install -e ".[test]"

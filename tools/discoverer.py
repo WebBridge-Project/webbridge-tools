@@ -97,7 +97,7 @@ def main():
     Exit code: 0 on success, 1 on failure
     """
     if len(sys.argv) < 2:
-        print("# Usage: webbridge_discoverer.py <header1.h> [header2.h] ...",
+        print("# Usage: webbridge-discoverer <header1.h> [header2.h] ...",
               file=sys.stderr)
         sys.exit(1)
 

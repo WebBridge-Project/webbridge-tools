@@ -11,11 +11,9 @@ verifying an actual compile requires a consumer project with that library
 available (e.g. via Conan).
 """
 
+import pytest
 import tempfile
 from pathlib import Path
-
-import pytest
-
 from webbridge_tools.tools.generate import (
     generate_registration_header,
     generate_registration_impl,

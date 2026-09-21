@@ -54,6 +54,24 @@ function(_parse_discoverer_output discoverer_output out_var)
 	set(${out_var} ${result} PARENT_SCOPE)
 endfunction()
 
+function(_webbridge_run_discoverer files out_var)
+	execute_process(
+		COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.tools.discoverer
+			${files}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		OUTPUT_VARIABLE discoverer_output
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		RESULT_VARIABLE result
+	)
+
+	if(result AND NOT result EQUAL 0)
+		message(FATAL_ERROR "webbridge_tools.tools.discoverer failed with exit code ${result}")
+	endif()
+
+	_parse_discoverer_output("${discoverer_output}" parsed)
+	set(${out_var} ${parsed} PARENT_SCOPE)
+endfunction()
+
 function(webbridge_generate)
 	_webbridge_ensure_tools()
 
@@ -107,9 +125,7 @@ function(webbridge_generate)
 		get_target_property(target_sources ${arg_TARGET} SOURCES)
 		if(target_sources)
 			foreach(source ${target_sources})
-
 				get_filename_component(abs_source "${source}" ABSOLUTE)
-
 				if(abs_source MATCHES "\\.(h|hpp)$")
 					list(APPEND header_files ${abs_source})
 				endif()
@@ -117,20 +133,7 @@ function(webbridge_generate)
 		endif()
 
 		if(header_files)
-			execute_process(
-				COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.tools.discoverer
-					${header_files}
-				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-				OUTPUT_VARIABLE discoverer_output
-				OUTPUT_STRIP_TRAILING_WHITESPACE
-				RESULT_VARIABLE result
-			)
-
-			if(result AND NOT result EQUAL 0)
-				message(FATAL_ERROR "webbridge_tools.tools.discoverer failed with exit code ${result}")
-			endif()
-
-			_parse_discoverer_output("${discoverer_output}" all_files)
+			_webbridge_run_discoverer("${header_files}" all_files)
 		endif()
 
 	elseif(arg_FILES)
@@ -140,20 +143,7 @@ function(webbridge_generate)
 			list(APPEND abs_files ${abs_file})
 		endforeach()
 
-		execute_process(
-			COMMAND ${WEBBRIDGE_PYTHON_EXECUTABLE} -m webbridge_tools.tools.discoverer
-				${abs_files}
-			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-			OUTPUT_VARIABLE discoverer_output
-			OUTPUT_STRIP_TRAILING_WHITESPACE
-			RESULT_VARIABLE result
-		)
-
-		if(result AND NOT result EQUAL 0)
-			message(FATAL_ERROR "webbridge_tools.tools.discoverer failed with exit code ${result}")
-		endif()
-
-		_parse_discoverer_output("${discoverer_output}" all_files)
+		_webbridge_run_discoverer("${abs_files}" all_files)
 	endif()
 
 	if(NOT all_files)
@@ -170,7 +160,6 @@ function(webbridge_generate)
 	set(all_input_files)
 
 	foreach(pair ${all_files})
-
 		string(REPLACE "|" ";" parts "${pair}")
 		list(GET parts 0 file)
 		list(GET parts 1 class_name)

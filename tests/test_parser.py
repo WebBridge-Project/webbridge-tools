@@ -3,7 +3,6 @@
 Burn test for the webbridge parser
 
 Usage:
-    python test_parser.py
     python -m pytest test_parser.py -v
 """
 
@@ -329,7 +328,7 @@ class TestEdgeCases:
         assert result is not None and result.name == "EmptyClass"
         assert len(result.properties) == 0 and len(result.events) == 0
         assert len(result.sync_methods) == 0 and len(result.async_methods) == 0
-        assert len(result.constructors) == 1  # Default-Konstruktor
+        assert len(result.constructors) == 1  # default constructor
     
     @pytest.mark.parametrize("temp_header", [SIMPLE_CLASS], indirect=True, ids=["simple_class"])
     def test_class_not_found(self, temp_header):
@@ -338,39 +337,3 @@ class TestEdgeCases:
     def test_file_not_found(self):
         with pytest.raises(FileNotFoundError):
             parse_header("/non/existent/path.h", "SomeClass")
-
-
-
-
-# =============================================================================
-# Main Entry Point
-# =============================================================================
-
-def run_burntest():
-    """Run all tests and print a summary report."""
-    print("=" * 80)
-    print("webbridge Parser - Burntest")
-    print("=" * 80)
-    print()
-    
-    # Run pytest
-    exit_code = pytest.main([
-        __file__,
-        "--tb=short",
-        "-x",  # Stop at first failure
-    ])
-
-    print()
-    print("=" * 80)
-    if exit_code == 0:
-        print("✅ All tests passed!")
-    else:
-        print("❌ Some tests failed!")
-    print("=" * 80)
-    
-    return exit_code
-
-
-if __name__ == "__main__":
-    import sys
-    sys.exit(run_burntest())

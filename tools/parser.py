@@ -210,9 +210,8 @@ def _parse_parameters(source_code: bytes, param_list: Node) -> List[Tuple[str, s
 def _parse_method(source_code: bytes, node: Node, func_declarator: Node, 
                   class_name: str, is_inline: bool = False) -> Optional[MethodInfo]:
     """Parse a method from either function_definition or field_declaration.
-    
+
     Returns None if the node should be skipped (destructor, operator, etc.).
-    Returns a tuple (method_info, is_constructor) otherwise.
     """
     name_types = ('field_identifier', 'identifier') if is_inline else ('field_identifier',)
     method_name_node = _find_child_by_type(func_declarator, *name_types)
@@ -622,7 +621,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         description='webbridge Parser - Analyze C++ header files for specific classes',
-        epilog='Example: python parser.py ../src/MyObject.h --class-name MyObject'
+        epilog='Example: webbridge-parser ../src/MyObject.h --class-name MyObject'
     )
     parser.add_argument('header_file', help='Path to the C++ header file')
     parser.add_argument('-c', '--class-name', required=True, help='Name of the class to parse')

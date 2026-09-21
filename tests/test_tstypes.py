@@ -3,7 +3,6 @@
 Burn test for tstypes (C++ → TypeScript type mapping)
 
 Usage:
-    python test_tstypes.py
     python -m pytest test_tstypes.py -v
 """
 
@@ -31,34 +30,3 @@ from webbridge_tools.tools.tstypes import cpp_to_ts_type
 
 def test_cpp_to_ts_type_burn(cpp, ts):
     assert cpp_to_ts_type(cpp) == ts
-
-# =============================================================================
-# Main Entry Point (Burn-Test Runner)
-# =============================================================================
-
-def run_burntest():
-    """Run all tests and print a summary report."""
-    print("=" * 80)
-    print("tstypes - Burn Test")
-    print("=" * 80)
-    print()
-    import pytest
-    exit_code = pytest.main([
-        __file__,
-        "--tb=short",
-        "-x",
-    ])
-    print()
-    print("=" * 80)
-    if exit_code == 0:
-        print("✅ All tests passed!")
-    else:
-        print("❌ Some tests failed!")
-    print("=" * 80)
-    return exit_code
-
-if __name__ == "__main__":
-    import sys
-    sys.exit(run_burntest())
-
-
