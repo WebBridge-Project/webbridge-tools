@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
-# Unterstützte C++-Container (nlohmann::json)
+# Supported C++ containers (nlohmann::json)
 #
-# Sequenz-Container (werden als JSON-Arrays umgesetzt):
+# Sequence containers (converted to JSON arrays):
 #
 # std::vector<T>
 # std::deque<T>
 # std::list<T>
 # std::array<T, N>
-# – sowie alle iterierbaren Container – sind direkt kompatibel für Serialisierung
-#  und Deserialisierung. [deepwiki.com], [json.nlohmann.me]
+# - as well as all iterable containers - are directly compatible for
+#  serialization and deserialization. [deepwiki.com], [json.nlohmann.me]
 #
-# Assoziative Container (werden als JSON-Objekte umgesetzt):
+# Associative containers (converted to JSON objects):
 #
 # std::map<std::string, T>
 # std::unordered_map<std::string, T>
 #
-# – Schlüssel müssen std::string sein, da JSON-Objekte nur String-Keys erlauben.
+# - keys must be std::string, since JSON objects only allow string keys.
 # [github.com], [deepwiki.com]
 #
-# Primitive Typen: int, double, bool, std::string, nullptr_t usw., alles nativ abgebildet.
+# Primitive types: int, double, bool, std::string, nullptr_t etc., all mapped natively.
 # [github.com], [deepwiki.com]
 #
-# Benutzerdefinierte Typen sind durch to_json / from_json Serialisierer ebenfalls
-# voll integriert, aber das ist über C++ hinaus. [json.nlohmann.me]
+# User-defined types are also fully integrated via to_json / from_json
+# serializers, but that's beyond C++ itself. [json.nlohmann.me]
 
 
 SCALAR_MAP = {
@@ -85,39 +85,33 @@ ASSOC_CONTAINER_MAP = {
 
 
 def cpp_to_ts_type(cpp_type: str) -> str:
-    """Konvertiert C++ Typen zu TypeScript Typen."""
+    """Converts C++ types to TypeScript types."""
     cpp_type = cpp_type.strip()
-    # Entferne const, &, * und zusätzliche Leerzeichen
     cpp_type = cpp_type.replace('const ', '').replace('&', '').replace('*', '').strip()
 
-    # Prüfe auf skalare Typen
     if cpp_type in SCALAR_MAP:
         return SCALAR_MAP[cpp_type]
 
-    # Prüfe auf Sequenz-Container (vector, list, deque, array)
     for container_name in SEQ_CONTAINER_MAP:
         if cpp_type.startswith(container_name + '<'):
-            # Extrahiere den inneren Typ
+
             start = cpp_type.index('<') + 1
             end = cpp_type.rindex('>')
             inner = cpp_type[start:end].strip()
 
-            # Für std::array, entferne die Größe (z.B. std::array<int, 10> -> int)
             if container_name == 'std::array' and ',' in inner:
                 inner = inner[:inner.index(',')].strip()
 
             inner_ts = cpp_to_ts_type(inner)
             return f'{inner_ts}[]'
 
-    # Prüfe auf assoziative Container (map, unordered_map)
     for container_name in ASSOC_CONTAINER_MAP:
         if cpp_type.startswith(container_name + '<'):
-            # Extrahiere Key und Value Typen
+
             start = cpp_type.index('<') + 1
             end = cpp_type.rindex('>')
             types = cpp_type[start:end].strip()
 
-            # Finde das Komma zwischen Key und Value (beachte verschachtelte Templates)
             depth = 0
             comma_pos = -1
             for i, c in enumerate(types):
@@ -133,7 +127,6 @@ def cpp_to_ts_type(cpp_type: str) -> str:
                 key_type = types[:comma_pos].strip()
                 value_type = types[comma_pos+1:].strip()
 
-                # Key muss std::string sein für JSON
                 if key_type != 'std::string':
                     return 'unknown'
 

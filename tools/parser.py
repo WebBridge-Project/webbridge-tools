@@ -63,7 +63,7 @@ class EnumInfo:
     name: str
     enum_values: List[str]
     is_enum_class: bool
-    is_nested: bool = True  # True if defined inside the class
+    is_nested: bool = True
 
 
 @dataclass
@@ -97,14 +97,11 @@ class ClassInfo:
         Returns:
             True if type_name matches a nested enum in this class
         """
-        # Strip const, &, * etc.
         clean_type = type_name.replace('const ', '').replace('&', '').replace('*', '').strip()
         
-        # Check if it's already qualified (contains ::)
         if '::' in clean_type:
-            return False  # Already qualified, no need to modify
+            return False
         
-        # Check if it matches any nested enum name
         return any(enum.name == clean_type and enum.is_nested for enum in self.enums)
     
     def qualify_type(self, type_name: str) -> str:
@@ -118,7 +115,7 @@ class ClassInfo:
         """
         if self.is_nested_enum(type_name):
             clean_type = type_name.replace('const ', '').replace('&', '').replace('*', '').strip()
-            # Preserve const/ref qualifiers
+
             prefix = ''
             suffix = ''
             if 'const ' in type_name:
@@ -189,11 +186,9 @@ def _parse_parameters(source_code: bytes, param_list: Node) -> List[Tuple[str, s
         if child.type != 'parameter_declaration':
             continue
 
-        # Extrahiere Type
         type_node = _find_child_by_type(child, 'primitive_type', 'type_identifier', 'qualified_identifier', 'template_type')
         param_type = _normalize_type(source_code, type_node) if type_node else 'unknown'
 
-        # Extrahiere Name
         param_name = 'arg'
         for node_type in ('identifier', 'reference_declarator', 'pointer_declarator'):
             name_node = _find_child_by_type(child, node_type)
@@ -201,7 +196,6 @@ def _parse_parameters(source_code: bytes, param_list: Node) -> List[Tuple[str, s
                 if node_type == 'identifier':
                     param_name = _get_node_text(source_code, name_node)
                 else:
-                    # Für reference/pointer: suche Identifier in Kindern
                     identifier = _find_child_by_type(name_node, 'identifier')
                     if identifier:
                         param_name = _get_node_text(source_code, identifier)
@@ -229,27 +223,22 @@ def _parse_method(source_code: bytes, node: Node, func_declarator: Node,
     
     method_name = _get_node_text(source_code, method_name_node)
     
-    # Skip destructors and operators
     if method_name.startswith(('~', 'operator')):
         return None
     
     is_constructor = (method_name == class_name)
     
-    # Determine return type based on node type
     if is_constructor:
         return_type = ''
     elif is_inline:
-        # For function_definition: return type is before function_declarator
         skip_types = ('function_declarator', 'compound_statement', 'type_qualifier')
         return_type_node = next((c for c in node.children if c.type not in skip_types), None)
         return_type = _normalize_type(source_code, return_type_node) if return_type_node else 'void'
     else:
-        # For field_declaration: skip attributes and declarators
         skip_types = ('attribute_declaration', 'field_identifier', 'function_declarator', ';')
         return_type_node = next((c for c in node.children if c.type not in skip_types), None)
         return_type = _normalize_type(source_code, return_type_node) if return_type_node else 'void'
     
-    # Check for async attribute (only in field_declaration, not inline)
     is_async = False
     if not is_inline:
         is_async = any('async' in _get_node_text(source_code, child)
@@ -266,17 +255,15 @@ def _parse_method(source_code: bytes, node: Node, func_declarator: Node,
 def _extract_all_members(source_code: bytes, class_body: Node, class_info: ClassInfo):
     """Extract all members (properties, events, methods) in a single pass."""
 
-    current_access = 'private'  # Default access in class is private
+    current_access = 'private'
 
     def process_field(node: Node, access: str):
         if node.type not in ('field_declaration', 'function_definition', 'enum_specifier'):
             return
 
-        # Ignore non-public members
         if access != 'public':
             return
 
-        # Handle enum_specifier
         if node.type == 'enum_specifier':
             is_enum_class = False
             enum_name = None
@@ -291,7 +278,6 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                 elif child.type == 'enumerator_list':
                     enumerator_list = child
 
-            # Extract enum values
             enum_values = []
             if enumerator_list:
                 for child in enumerator_list.children:
@@ -307,7 +293,6 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
             ))
             return
 
-        # Handle function_definition (inline method with body)
         if node.type == 'function_definition':
             func_declarator = _find_child_by_type(node, 'function_declarator')
             if not func_declarator:
@@ -321,7 +306,6 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                     class_info.sync_methods.append(method)
             return
 
-        # Handle field_declaration (could be method declaration, property, event, or constant)
         func_declarator = _find_child_by_type(node, 'function_declarator')
 
         if func_declarator:
@@ -335,16 +319,13 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                     class_info.sync_methods.append(method)
             return
 
-        # Sonst ist es Property, Event oder Konstante
         type_node = _find_child_by_type(node, 'template_type')
         declarator_node = _find_child_by_type(node, 'field_identifier')
 
-        # Wenn es ein template_type ist, prüfe auf Property/Event
         if type_node and declarator_node:
             template_name, template_args = _extract_template_info(source_code, type_node)
             member_name = _get_node_text(source_code, declarator_node)
 
-            # Property oder Event? (supports both old PascalCase and new snake_case)
             if template_name in ('Property', 'property'):
                 prop_type = 'unknown'
                 if template_args:
@@ -363,7 +344,6 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                 class_info.events.append(EventInfo(name=member_name, arg_types=arg_types))
                 return
         
-        # Wenn nicht Property/Event, prüfe ob es eine Konstante ist
         if declarator_node:
             has_const = False
             is_static = False
@@ -389,7 +369,6 @@ def _extract_all_members(source_code: bytes, class_body: Node, class_info: Class
                     is_static=is_static
                 ))
 
-    # Traverse with access specifier tracking
     def walk(node: Node):
         nonlocal current_access
 
@@ -429,14 +408,12 @@ def _parse_class(source_code: bytes, node: Node, target_class_name: str, namespa
     if not (class_name and class_body):
         return None
 
-    # Filtere nach Namen
     if class_name != target_class_name:
         return None
 
     class_info = ClassInfo(name=class_name, namespace=namespace or [])
     _extract_all_members(source_code, class_body, class_info)
     
-    # Add implicit default constructor if none found
     if not class_info.constructors:
         class_info.constructors.append(MethodInfo(
             name=class_name,
@@ -467,8 +444,7 @@ def _find_class(source_code: bytes, node: Node, target_class_name: str, namespac
         class_info = _parse_class(source_code, node, target_class_name, namespace)
         if class_info:
             return class_info
-    
-    # Bei namespace_definition: extrahiere Namen und durchsuche Inhalt
+
     if node.type == 'namespace_definition':
         ns_name = None
         ns_body = None
@@ -524,21 +500,21 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
     """Generate a detailed report about a parsed class."""
     lines = [
         "=" * 80,
-        "webbridge Parser - Detaillierter Report",
+        "webbridge Parser - Detailed Report",
         "=" * 80,
-        f"Header-Datei: {header_path}",
-        f"Klasse gefunden: {'Ja' if class_info else 'Nein'}",
+        f"Header file: {header_path}",
+        f"Class found: {'Yes' if class_info else 'No'}",
         ""
     ]
 
     if not class_info:
         lines.extend([
-            "WARNUNG: Klasse nicht gefunden!",
+            "WARNING: Class not found!",
             "",
-            "Mögliche Gründe:",
-            "  - Klasse existiert nicht in der Header-Datei",
-            "  - Falscher Klassenname angegeben",
-            "  - Syntaxfehler in der Header-Datei",
+            "Possible reasons:",
+            "  - Class does not exist in the header file",
+            "  - Wrong class name specified",
+            "  - Syntax error in the header file",
             "=" * 80
         ])
         return "\n".join(lines)
@@ -546,7 +522,7 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
     cls = class_info
     lines.extend([
         "-" * 80,
-        f"Klasse: {cls.name}",
+        f"Class: {cls.name}",
         "-" * 80,
         "",
         f"PROPERTIES ({len(cls.properties)})",
@@ -557,7 +533,7 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
         max_len = max(len(p.name) for p in cls.properties)
         lines.extend(f"  • {p.name.ljust(max_len)} : {p.type_name}" for p in cls.properties)
     else:
-        lines.append("  (keine Properties gefunden)")
+        lines.append("  (no properties found)")
 
     lines.extend(["", f"EVENTS ({len(cls.events)})", "-" * 40])
 
@@ -567,7 +543,7 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
                      if e.arg_types else f"  • {e.name.ljust(max_len)} : Event<>"
                      for e in cls.events)
     else:
-        lines.append("  (keine Events gefunden)")
+        lines.append("  (no events found)")
 
     lines.extend(["", f"CONSTANTS ({len(cls.constants)})", "-" * 40])
 
@@ -577,17 +553,17 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
             static_prefix = 'static ' if const.is_static else ''
             lines.append(f"  - {const.name.ljust(max_len)} : {static_prefix}{const.type_name}")
     else:
-        lines.append("  (keine Konstanten gefunden)")
+        lines.append("  (no constants found)")
 
     lines.extend(["", f"ENUMS ({len(cls.enums)})", "-" * 40])
 
     if cls.enums:
         for enum in cls.enums:
             enum_type = 'enum class' if enum.is_enum_class else 'enum'
-            values_str = ', '.join(enum.enum_values) if enum.enum_values else '(keine Werte)'
+            values_str = ', '.join(enum.enum_values) if enum.enum_values else '(no values)'
             lines.append(f"  • {enum.name} [{enum_type}]: {{{values_str}}}")
     else:
-        lines.append("  (keine Enums gefunden)")
+        lines.append("  (no enums found)")
 
     lines.extend(["", f"CONSTRUCTORS ({len(cls.constructors)})", "-" * 40])
 
@@ -598,41 +574,41 @@ def generate_detailed_report(class_info: Optional[ClassInfo], header_path: str) 
             else:
                 lines.append(f"  • {ctor.name}()")
     else:
-        lines.append("  (keine Konstruktoren gefunden)")
+        lines.append("  (no constructors found)")
 
-    lines.extend(["", f"SYNCHRONE METHODEN ({len(cls.sync_methods)})", "-" * 40])
+    lines.extend(["", f"SYNC METHODS ({len(cls.sync_methods)})", "-" * 40])
 
     if cls.sync_methods:
         lines.extend(f"  • {m.name}({', '.join(f'{t} {n}' for t, n in m.parameters)}) -> {m.return_type}"
                      for m in cls.sync_methods)
     else:
-        lines.append("  (keine synchronen Methoden gefunden)")
+        lines.append("  (no sync methods found)")
 
-    lines.extend(["", f"ASYNCHRONE METHODEN ({len(cls.async_methods)})", "-" * 40])
+    lines.extend(["", f"ASYNC METHODS ({len(cls.async_methods)})", "-" * 40])
 
     if cls.async_methods:
         lines.extend(f"  • {m.name}({', '.join(f'{t} {n}' for t, n in m.parameters)}) -> {m.return_type} [ASYNC]"
                      for m in cls.async_methods)
     else:
-        lines.append("  (keine asynchronen Methoden gefunden)")
+        lines.append("  (no async methods found)")
 
     total = len(cls.properties) + len(cls.events) + len(cls.constants) + len(cls.enums) + len(cls.constructors) + len(cls.sync_methods) + len(cls.async_methods)
     lines.extend([
         "",
-        "ZUSAMMENFASSUNG",
+        "SUMMARY",
         "-" * 40,
-        f"  Gesamtzahl Members: {total}",
+        f"  Total members: {total}",
         f"    - Properties:      {len(cls.properties)}",
         f"    - Events:          {len(cls.events)}",
         f"    - Constants:       {len(cls.constants)}",
         f"    - Enums:           {len(cls.enums)}",
         f"    - Constructors:    {len(cls.constructors)}",
-        f"    - Sync Methoden:   {len(cls.sync_methods)}",
-        f"    - Async Methoden:  {len(cls.async_methods)}",
+        f"    - Sync Methods:    {len(cls.sync_methods)}",
+        f"    - Async Methods:   {len(cls.async_methods)}",
         ""
     ])
 
-    lines.extend(["=" * 80, "Report-Ende", "=" * 80])
+    lines.extend(["=" * 80, "End of report", "=" * 80])
     return "\n".join(lines)
 
 

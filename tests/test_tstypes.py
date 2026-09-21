@@ -22,8 +22,8 @@ from webbridge_tools.tools.tstypes import cpp_to_ts_type
     ("std::unordered_map<std::string, bool>", "Record<string, boolean>"),
     ("std::vector<std::vector<int>>", "number[][]"),
     ("std::map<std::string, std::vector<double>>", "Record<string, number[]>"),
-    ("std::map<int, int>", "unknown"),  # falscher Key
-    ("std::pair<int, int>", "unknown"), # nicht unterstützt
+    ("std::map<int, int>", "unknown"),
+    ("std::pair<int, int>", "unknown"),
     ("const std::vector<int>&", "number[]"),
     ("unsigned long long", "number"),
     ("nullptr_t", "null"),
@@ -33,27 +33,27 @@ def test_cpp_to_ts_type_burn(cpp, ts):
     assert cpp_to_ts_type(cpp) == ts
 
 # =============================================================================
-# Main Entry Point (Burntest-Runner)
+# Main Entry Point (Burn-Test Runner)
 # =============================================================================
 
 def run_burntest():
     """Run all tests and print a summary report."""
     print("=" * 80)
-    print("tstypes - Burntest")
+    print("tstypes - Burn Test")
     print("=" * 80)
     print()
     import pytest
     exit_code = pytest.main([
         __file__,
         "--tb=short",
-        "-x",  # Stop bei erstem Fehler
+        "-x",
     ])
     print()
     print("=" * 80)
     if exit_code == 0:
-        print("✅ Alle Tests erfolgreich!")
+        print("✅ All tests passed!")
     else:
-        print("❌ Einige Tests fehlgeschlagen!")
+        print("❌ Some tests failed!")
     print("=" * 80)
     return exit_code
 

@@ -353,19 +353,19 @@ def run_burntest():
     print("=" * 80)
     print()
     
-    # Führe pytest aus
+    # Run pytest
     exit_code = pytest.main([
         __file__,
         "--tb=short",
-        "-x",  # Stop bei erstem Fehler
+        "-x",  # Stop at first failure
     ])
-    
+
     print()
     print("=" * 80)
     if exit_code == 0:
-        print("✅ Alle Tests erfolgreich!")
+        print("✅ All tests passed!")
     else:
-        print("❌ Einige Tests fehlgeschlagen!")
+        print("❌ Some tests failed!")
     print("=" * 80)
     
     return exit_code

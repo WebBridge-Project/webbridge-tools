@@ -1,6 +1,6 @@
 # webbridge-tools
 
-Python code generator for webbridge: turns C++ classes derived from `webbridge::object` into C++ registration code and TypeScript bindings. Use it together with the `webbridge` C++ library (from Conan) in your project — this package only generates code, it doesn't provide that library itself.
+Python code generator for webbridge: turns C++ classes derived from `webbridge::object` into C++ registration code and TypeScript bindings. Use it together with the `webbridge-runtime` C++ library (from Conan) in your project — this package only generates code, it doesn't provide that library itself.
 
 ## Install
 
@@ -12,7 +12,7 @@ Requires Python 3.9+, and CMake 3.26+ for the integration below.
 
 ## Wire it into your project
 
-This assumes your `CMakeLists.txt` already sets up the `webbridge` C++ library itself (e.g. via Conan) - that part is unrelated to `webbridge-tools` and doesn't change. Add these lines *in addition* to that, after the target you want code generated for already exists:
+This assumes your `CMakeLists.txt` already sets up the `webbridge-runtime` C++ library itself (e.g. via Conan) - that part is unrelated to `webbridge-tools` and doesn't change. Add these lines *in addition* to that, after the target you want code generated for already exists:
 
 ```cmake
 find_package(Python REQUIRED COMPONENTS Interpreter)

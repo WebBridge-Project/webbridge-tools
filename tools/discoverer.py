@@ -2,18 +2,18 @@
 """
 webbridge Auto-Discovery Scanner
 
-Scannt C++ Header-Dateien und findet alle Klassen, die von webbridge::object erben.
-Wird von CMake aufgerufen, um automatisch Klassen für die Registrierung zu entdecken.
+Scans C++ header files and finds all classes that inherit from webbridge::object.
+Called by CMake to automatically discover classes for registration.
 
-Verwendung:
+Usage:
     webbridge-discoverer header1.h header2.h ...
     python -m webbridge_tools.tools.discoverer header1.h header2.h ...
 
-Ausgabe:
-    Pro gefundene Klasse: filename|classname (eine pro Zeile)
-    CMake kann diese mit COMMAND_OUTPUT_VARIABLE weiterverwenden
+Output:
+    Per found class: filename|classname (one per line)
+    CMake can use this via COMMAND_OUTPUT_VARIABLE
 
-Inspiriert von Qt's MOC Auto-Discovery Mechanismus.
+Inspired by Qt's MOC auto-discovery mechanism.
 """
 
 import sys
@@ -25,13 +25,13 @@ from tree_sitter import Parser, Language
 
 def find_webbridge_classes(header_file: str) -> List[str]:
     """
-    Findet alle Klassen in einer Header-Datei, die von webbridge::object erben.
+    Finds all classes in a header file that inherit from webbridge::object.
 
     Args:
-        header_file: Pfad zur Header-Datei
+        header_file: Path to the header file
 
     Returns:
-        Liste der webbridge-Klassennamen
+        List of webbridge class names
     """
     try:
         path = Path(header_file)
@@ -41,71 +41,63 @@ def find_webbridge_classes(header_file: str) -> List[str]:
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
 
-        # Schneller String-Check (optimiert für CMake Performance)
-        # Supports both old PascalCase and new snake_case naming
         if 'webbridge::Object' not in content and 'webbridge::object' not in content:
             return []
 
-        # Falls String-Check positiv: Parse mit tree-sitter
         try:
             parser = Parser(Language(tscpp.language()))
             tree = parser.parse(content.encode('utf-8'))
 
-            # Sammle alle Klassennamen
             class_names = []
             _find_class_names(tree.root_node, content, class_names)
             return class_names
         except Exception as e:
-            print(f"# Parse-Fehler bei {header_file}: {e}", file=sys.stderr)
+            print(f"# Parse error for {header_file}: {e}", file=sys.stderr)
             return []
 
     except Exception as e:
-        # Fehlertoleranz - Datei überspringen
-        print(f"# Fehler bei {header_file}: {e}", file=sys.stderr)
+        print(f"# Error for {header_file}: {e}", file=sys.stderr)
         return []
 
 
 def _find_class_names(node, content: str, class_names: List[str]):
     """
-    Rekursive Suche nach Klassennamen die von webbridge::object erben
+    Recursive search for class names that inherit from webbridge::object
 
     Args:
-        node: AST-Knoten
-        content: Source-Code
-        class_names: Liste zum Sammeln der Klassennamen
+        node: AST node
+        content: source code
+        class_names: list to collect the class names into
     """
     if node.type == 'class_specifier':
         class_name = None
         inherits_webbridge = False
 
-        # Suche type_identifier (Klassenname) und base_class_clause
         for child in node.children:
             if child.type == 'type_identifier':
                 class_name = content[child.start_byte:child.end_byte].strip()
             elif child.type == 'base_class_clause':
                 base_text = content[child.start_byte:child.end_byte]
-                # Supports both old PascalCase and new snake_case naming
+
                 if 'webbridge::Object' in base_text or 'webbridge::object' in base_text or 'Object' in base_text or 'object' in base_text:
                     inherits_webbridge = True
 
-        # Nur hinzufügen wenn Name und webbridge::object Vererbung vorhanden
         if class_name and inherits_webbridge:
             class_names.append(class_name)
 
-    # Rekurse in Kinder-Knoten
     for child in node.children:
         _find_class_names(child, content, class_names)
 
 
 def main():
     """
-    Main Entry-Point für CMake-Integration.
+    Main entry point for CMake integration.
 
-    Gibt gefundene Klassen zeilenweise aus im Format: filename|classname
-    Exit-Code: 0 bei Erfolg, 1 bei Fehler
+    Prints found classes one per line in the format: filename|classname
+    Exit code: 0 on success, 1 on failure
     """
     if len(sys.argv) < 2:
-        print("# Verwendung: webbridge_discoverer.py <header1.h> [header2.h] ...",
+        print("# Usage: webbridge_discoverer.py <header1.h> [header2.h] ...",
               file=sys.stderr)
         sys.exit(1)
 
@@ -116,7 +108,6 @@ def main():
         for class_name in class_names:
             results.append(f"{header_file}|{class_name}")
 
-    # Output für CMake (eine Zeile pro Klasse: filename|classname)
     if results:
         for result in results:
             print(result)
