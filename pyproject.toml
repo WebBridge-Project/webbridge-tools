@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "webbridge-tools"
 version = "1.0.0"
-description = "The webbridge C++ library plus its C++ registration / TypeScript binding code generator, as a pip/conda-installable package"
+description = "The Python code generator for the webbridge C++ framework (C++ registration + TypeScript bindings), as a pip/conda-installable package"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "F&S Bondtec Semiconductor GmbH" }]
@@ -42,7 +42,7 @@ webbridge-parser = "webbridge_tools.tools.parser:main"
 # install as the webbridge_tools.tools / webbridge_tools.cmake subpackages -
 # i.e. nested under webbridge_tools/ in the installed distribution, exactly
 # where the code (Path(__file__).parent-relative lookups) expects them.
-packages = ["webbridge_tools", "webbridge_tools.tools", "webbridge_tools.cmake"]
+packages = ["webbridge_tools", "webbridge_tools.tools", "webbridge_tools.tools.templates", "webbridge_tools.cmake"]
 
 [tool.setuptools.package-dir]
 webbridge_tools = "src/webbridge_tools"
@@ -50,12 +50,7 @@ webbridge_tools = "src/webbridge_tools"
 "webbridge_tools.cmake" = "cmake"
 
 [tool.setuptools.package-data]
-webbridge_tools = [
-    "webbridge/*.h",
-    "webbridge/impl/*.h",
-    "webbridge/impl/*.cpp",
-]
-"webbridge_tools.tools" = ["templates/*.j2"]
+"webbridge_tools.tools.templates" = ["*.j2"]
 "webbridge_tools.cmake" = ["*.cmake"]
 
 [tool.pytest.ini_options]

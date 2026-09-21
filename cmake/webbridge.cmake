@@ -19,8 +19,8 @@ function(_webbridge_ensure_tools)
 	set(WEBBRIDGE_PYTHON_EXECUTABLE "${python_exe}" CACHE INTERNAL "")
 
 	execute_process(
-		COMMAND "${python_exe}" -c "import webbridge_tools, webbridge_tools.tools, pathlib; print(pathlib.Path(webbridge_tools.__file__).parent.as_posix()); print(pathlib.Path(next(iter(webbridge_tools.tools.__path__))).as_posix())"
-		OUTPUT_VARIABLE _webbridge_dirs
+		COMMAND "${python_exe}" -c "import webbridge_tools.tools, pathlib; print(pathlib.Path(next(iter(webbridge_tools.tools.__path__))).as_posix())"
+		OUTPUT_VARIABLE tools_dir
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 		RESULT_VARIABLE import_result
 		ERROR_VARIABLE import_error
@@ -35,87 +35,7 @@ function(_webbridge_ensure_tools)
 			"installed.\n${import_error}")
 	endif()
 
-	string(REPLACE "\n" ";" _webbridge_dirs "${_webbridge_dirs}")
-	list(GET _webbridge_dirs 0 package_dir)
-	list(GET _webbridge_dirs 1 tools_dir)
-
 	set(WEBBRIDGE_TEMPLATES_DIR "${tools_dir}/templates" CACHE INTERNAL "")
-	set(WEBBRIDGE_INCLUDE_DIR "${package_dir}" CACHE INTERNAL "")
-endfunction()
-
-function(webbridge_add_library)
-	set(options)
-	set(oneValueArgs TARGET)
-	set(multiValueArgs)
-	cmake_parse_arguments(PARSE_ARGV 0 arg
-		"${options}" "${oneValueArgs}" "${multiValueArgs}"
-	)
-
-	if(NOT arg_TARGET)
-		set(arg_TARGET webbridge)
-	endif()
-
-	if(TARGET ${arg_TARGET})
-		message(FATAL_ERROR "webbridge_add_library: target '${arg_TARGET}' already exists")
-	endif()
-
-	_webbridge_ensure_tools()
-
-	include(FetchContent)
-
-	set(JSON_BuildTests OFF CACHE INTERNAL "")
-	FetchContent_Declare(
-		nlohmann_json
-		GIT_REPOSITORY https://github.com/nlohmann/json
-		GIT_TAG v3.11.3
-		GIT_SHALLOW TRUE)
-	FetchContent_MakeAvailable(nlohmann_json)
-
-	FetchContent_Declare(
-		webview
-		GIT_REPOSITORY https://github.com/webview/webview
-		GIT_TAG 0.12.0)
-	FetchContent_MakeAvailable(webview)
-
-	set(src "${WEBBRIDGE_INCLUDE_DIR}/webbridge")
-	add_library(${arg_TARGET} STATIC
-		${src}/object.h
-		${src}/error.h
-		${src}/impl/binding_helpers.h
-		${src}/impl/concepts.h
-		${src}/impl/dispatcher.h
-		${src}/impl/error_handler.h
-		${src}/impl/error_handler.cpp
-		${src}/impl/event_impl.h
-		${src}/impl/object_registry.h
-		${src}/impl/property_impl.h
-		${src}/impl/thread_pool.h
-		${src}/impl/thread_pool.cpp
-		${src}/impl/type_registration.h
-		${src}/impl/type_registration.cpp
-	)
-	if(NOT arg_TARGET STREQUAL "webbridge")
-		add_library(webbridge::${arg_TARGET} ALIAS ${arg_TARGET})
-	else()
-		add_library(webbridge::webbridge ALIAS webbridge)
-	endif()
-
-	target_include_directories(${arg_TARGET} PUBLIC
-		$<BUILD_INTERFACE:${WEBBRIDGE_INCLUDE_DIR}>
-	)
-
-	target_compile_features(${arg_TARGET} PUBLIC cxx_std_20)
-
-	target_compile_definitions(${arg_TARGET} PUBLIC _WIN32_WINNT=0x0A00)
-
-	target_link_libraries(${arg_TARGET} PUBLIC
-		nlohmann_json::nlohmann_json
-		webview::core
-	)
-
-	if(MSVC)
-		target_compile_options(${arg_TARGET} PRIVATE /W3 /bigobj)
-	endif()
 endfunction()
 
 function(_parse_discoverer_output discoverer_output out_var)
