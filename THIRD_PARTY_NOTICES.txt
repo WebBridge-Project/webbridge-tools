@@ -19,7 +19,7 @@ PYTHON DEPENDENCIES
    library, used to parse the C++ sources that are scanned for
    `webbridge::object` classes
    https://github.com/tree-sitter/py-tree-sitter
-   Version: >=0.25,<0.26 (as declared in pyproject.toml)
+   Version: >=0.23,<0.26 (as declared in pyproject.toml)
    License: MIT License
    Copyright: 2019 Max Brunsfeld, GitHub
 
