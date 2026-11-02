@@ -5,7 +5,7 @@
 [![Build](https://github.com/WebBridge-Project/webbridge-tools/actions/workflows/build.yml/badge.svg)](https://github.com/WebBridge-Project/webbridge-tools/actions/workflows/build.yml)
 [![PyPI](https://img.shields.io/pypi/v/webbridge-tools.svg)](https://pypi.org/project/webbridge-tools/)
 
-Python code generator for webbridge: turns C++ classes derived from `webbridge::object` into C++ registration code and TypeScript bindings. Use it together with the `webbridge-runtime` C++ library (from Conan) in your project — this package only generates code, it doesn't provide that library itself.
+Python code generator for webbridge: turns C++ classes derived from `webbridge::object` into C++ registration code and TypeScript bindings. Use it together with the `webbridge-runtime` C++ library (from Conan, not yet published) in your project — this package only generates code, it doesn't provide that library itself.
 
 ## Install
 
