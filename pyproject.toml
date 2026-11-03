@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "The Python code generator for the webbridge C++ framework (C++ registration + TypeScript bindings), as a pip/conda-installable package"
 readme = "README.md"
 license = "MIT"
-authors = [{ name = "F&S Bondtec Semiconductor GmbH" }]
+authors = [{ name = "Webbridge-Project" }]
 requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -23,9 +23,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fsbondtec/webbridge-tools"
-Repository = "https://github.com/fsbondtec/webbridge-tools"
-Issues = "https://github.com/fsbondtec/webbridge-tools/issues"
+Homepage = "https://github.com/WebBridge-Project/webbridge-tools"
+Repository = "https://github.com/WebBridge-Project/webbridge-tools"
+Issues = "https://github.com/WebBridge-Project/webbridge-tools/issues"
 
 [project.optional-dependencies]
 test = ["pytest>=7"]
