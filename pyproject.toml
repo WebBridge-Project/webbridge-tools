@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "webbridge-tools"
-version = "1.0.0"
+version = "1.0.1"
 description = "The Python code generator for the webbridge C++ framework (C++ registration + TypeScript bindings), as a pip/conda-installable package"
 readme = "README.md"
 license = "MIT"
